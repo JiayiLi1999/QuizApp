@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private int time_limit;
     private boolean isButtonImage;
     final Handler handler = new Handler();
+    private boolean mIsBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         timesText.append(String.valueOf(attemptsLeft));
 
         Intent intent = new Intent(this,TimerService.class);
-        bindService(intent,connection, Context.BIND_AUTO_CREATE);
+        mIsBound = bindService(intent,connection, Context.BIND_AUTO_CREATE);
         if(savedInstanceState!=null) {
             if (bound && timer != null) {
                 timer.setTimeA(savedInstanceState.getInt("secondsA"));
@@ -67,14 +68,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        runningA = false;
-        runningB = false;
-        if (bound && timer != null) {
-            timer.setTimeA(0);
-            timer.setTimeB(0);
-        }
-        unbindService(connection);
-        bound = false;
+        clear();
     }
 
     @Override
@@ -109,6 +103,11 @@ public class MainActivity extends AppCompatActivity {
             timer.setTimeA(0);
             timer.setTimeB(0);
         }
+        if(mIsBound) {
+            unbindService(connection);
+            mIsBound = false;
+        }
+        bound = false;
     }
     public void onClickSubmit(View view) {
         EditText typeView = (EditText) findViewById(R.id.inputAnswer);
@@ -118,11 +117,7 @@ public class MainActivity extends AppCompatActivity {
         TextView timesText = findViewById(R.id.attempts_left);
 
         if(inputValue.equals(answer)){
-            Intent intent = new Intent(this,MultipleChoices.class);
-            intent.putExtra("toggle_function",toggleType);
-            intent.putExtra("time_limit",time_limit);
-            intent.putExtra("image_button",isButtonImage);
-            startActivity(intent);
+            succeed();
         }else{
             if(attemptsLeft == 0){
                 fail();
@@ -133,6 +128,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void succeed() {
+        clear();
+        Intent intent = new Intent(this,MultipleChoices.class);
+        intent.putExtra("toggle_function",toggleType);
+        intent.putExtra("time_limit",time_limit);
+        intent.putExtra("image_button",isButtonImage);
+        startActivity(intent);
+    }
+
     public void fail(){
         clear();
         Intent intent = new Intent(this,ResultActivity.class);
@@ -199,7 +204,6 @@ public class MainActivity extends AppCompatActivity {
             bound = false;
         }
     };
-
     private void runTimeA(){
         final TextView timeViewA = findViewById(R.id.timerA);
         handler.post(new Runnable() {

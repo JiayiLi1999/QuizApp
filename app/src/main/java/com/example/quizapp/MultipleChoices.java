@@ -3,9 +3,13 @@ package com.example.quizapp;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.View;
 import android.widget.Button;
@@ -29,6 +33,7 @@ public class MultipleChoices extends AppCompatActivity {
     private int time_limit;
     private boolean isButtonImage;
     final Handler handler = new Handler();
+    private boolean mIsBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,9 +41,14 @@ public class MultipleChoices extends AppCompatActivity {
         setContentView(R.layout.activity_multiple_choices);
         TextView timesText = findViewById(R.id.attempts_left);
         timesText.append(String.valueOf(attemptsLeft));
+
+        Intent intent = new Intent(this,TimerService.class);
+        mIsBound = bindService(intent, connection, Context.BIND_AUTO_CREATE);
         if(savedInstanceState!=null) {
-            secondsA = savedInstanceState.getInt("secondsA");
-            secondsB = savedInstanceState.getInt("secondsB");
+            if (bound && timer != null) {
+                timer.setTimeA(savedInstanceState.getInt("secondsA"));
+                timer.setTimeB(savedInstanceState.getInt("secondsB"));
+            }
         }
         runTimeA();
         runTimeB();
@@ -46,6 +56,31 @@ public class MultipleChoices extends AppCompatActivity {
         runningB = true;
         Intent Setting = getIntent();
         setUp(Setting);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        runningB = false;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        runningB = true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        clear();
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        outState.putInt("secondsA",secondsA);
+        outState.putInt("secondsB",secondsB);
     }
 
     private void setUp(Intent setting) {
@@ -63,11 +98,18 @@ public class MultipleChoices extends AppCompatActivity {
         }
     }
     private void clear() {
+        attemptsLeft = 2;
         runningA = false;
         runningB = false;
-        secondsA = 0;
-        secondsB = 0;
-        attemptsLeft = 2;
+        if (bound && timer != null) {
+            timer.setTimeA(0);
+            timer.setTimeB(0);
+        }
+        if(mIsBound) {
+            unbindService(connection);
+            mIsBound = false;
+        }
+        bound = false;
     }
 
 
@@ -146,67 +188,7 @@ public class MultipleChoices extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        runningB = false;
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        runningB = true;
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        secondsA = 0;
-        runningA = false;
-        secondsB = 0;
-        runningB = false;
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
-        super.onSaveInstanceState(outState, outPersistentState);
-        outState.putInt("secondsA",secondsA);
-        outState.putInt("secondsB",secondsB);
-    }
-
-    private void runTimeA(){
-        final TextView timeViewA = findViewById(R.id.timerA);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                int hrsA = secondsA/3600;
-                int minA = (secondsA%3600)/60;
-                int secA = secondsA%60;
-                String timeA = String.format("%d:%02d:%02d",hrsA,minA,secA);
-                timeViewA.setText(timeA);
-                if(runningA) secondsA++;
-                handler.postDelayed(this,1000);
-            }
-        });
-    }
-    private void runTimeB(){
-        final TextView timeViewB = findViewById(R.id.timerB);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if(secondsB>time_limit){
-                    fail();
-                }
-                int hrsB = secondsB/3600;
-                int minB = (secondsB%3600)/60;
-                int secB = secondsB%60;
-                String timeB = String.format("%d:%02d:%02d",hrsB,minB,secB);
-                timeViewB.setText(timeB);
-                if(runningB) secondsB++;
-                handler.postDelayed(this,1000);
-            }
-        });
-    }
     public void onToggleButton(View view) {
         boolean isOn = ((ToggleButton)view).isChecked();
         String s = view.getResources().getResourceName(view.getId());
@@ -249,5 +231,65 @@ public class MultipleChoices extends AppCompatActivity {
             }
         }
 
+    }
+
+    private TimerService timer;
+    private boolean bound = false;
+    private ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TimerService.TimerBinder timerBinder = (TimerService.TimerBinder) service;
+            timer = timerBinder.getTimer();
+            bound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            bound = false;
+        }
+    };
+    private void runTimeA(){
+        final TextView timeViewA = findViewById(R.id.timerA);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                int time = 0;
+                if (runningA && bound && timer != null) {
+                    time = timer.getTimeA();
+                    if(time>time_limit) {
+                        fail();
+                        timer.passTime();
+                    }
+                }
+                int hrsA = time/3600;
+                int minA = (time%3600)/60;
+                int secA = time%60;
+                String timeA = String.format("%d:%02d:%02d",hrsA,minA,secA);
+                if(runningA) timeViewA.setText(timeA);
+                handler.postDelayed(this,1000);
+            }
+        });
+    }
+    private void runTimeB(){
+        final TextView timeViewB = findViewById(R.id.timerB);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                int time = 0;
+                if (runningB && bound && timer != null) {
+                    time = timer.getTimeB();
+                    if(time>time_limit) {
+                        fail();
+                        timer.passTime();
+                    }
+                }
+                int hrsB = time/3600;
+                int minB = (time%3600)/60;
+                int secB = time%60;
+                String timeB = String.format("%d:%02d:%02d",hrsB,minB,secB);
+                if(runningB) timeViewB.setText(timeB);
+                handler.postDelayed(this,1000);
+            }
+        });
     }
 }
