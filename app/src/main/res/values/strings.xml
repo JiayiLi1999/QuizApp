@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name">QuizApp</string>
+    <string name="title">Quiz</string>
+    <string name="initial_time">00:00:00</string>
+    <string name="choice_question">Which of the following animals are considered the "Big Five" of Africa?</string>
+    <string name="choice_question_2">Which of the followings are the Chinese zodiac?</string>
+    <string name="text_question">What is the fastest animal in the world?</string>
+    <string name="text_answer">cheetah</string>
+    <string name="submit">Sumbit</string>
+    <string name="attempt_lefts">Number of attempts remaining: </string>
+    <string name="result_success">Success!</string>
+    <string name="result_fail">Fail!</string>
+    <string name="share_button">Share</string>
+    <string name="timerA">Time A</string>
+    <string name="timerB">Time B</string>
+
+    <string name="set_toggle_function">Toggle button function:</string>
+    <string name="set_time_limit">Time limit for each question:</string>
+    <string name="set_button_style">Use image buttons:</string>
+
+    <string name="toggle_function_1">Hide the timer and keep it running as is</string>
+    <string name="toggle_function_2">Hide the timer and stop it from running</string>
+    <string name="toggle_function_3">Show the timer and stop it from running</string>
+
+
+    <string name="Lion">Lion</string>
+    <string name="Jerboa">Jerboa</string>
+    <string name="Rhino">Rhino</string>
+    <string name="Boomslang">Boomslang</string>
+    <string name="Elephant">Elephant</string>
+
+    <string name="Dragon">Dragon</string>
+    <string name="Bird">Bird</string>
+    <string name="Pig">Pig</string>
+    <string name="Dog">Dog</string>
+    <string name="Cat">Cat</string>
+
+    <string name="exceed_time_title">Hi There!</string>
+    <string name="exceed_time_text">You\'ve overrun your time. Try Again!</string>
+
+
+</resources>
